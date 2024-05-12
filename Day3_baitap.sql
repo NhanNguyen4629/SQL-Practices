@@ -21,17 +21,17 @@ order by name;
 --Excercise 8
 select name from Employee
 where salary > 2000 and months < 10 
-order by employee_id
+order by employee_id;
 --Excercise 9
 select product_id from products 
-where low_fats = 'Y' and recyclable = 'Y'
+where low_fats = 'Y' and recyclable = 'Y';
 --Excercise 10
 select name from Customer
-where referee_id <> 2 or referee_id is null
+where referee_id <> 2 or referee_id is null;
 --Excercise 11
 select  name, population, area  from World
 where area >=3000000 or population >=25000000
-order by name
+order by name;
 --Excercise 12 
 select distinct author_id as id from views 
 where author_id=viewer_id
