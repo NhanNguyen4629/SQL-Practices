@@ -10,6 +10,7 @@ select round(cast(sum(item_count*order_occurrences)/sum(order_occurrences) as de
 from items_per_order 
 --Excercise 5
 SELECT candidate_id FROM candidates
+where skill in ('Python,'Tableau','PostgreSQL')
 group by candidate_id
 having count(skill) = 3
 --Excercise 6
