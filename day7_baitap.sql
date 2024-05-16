@@ -24,12 +24,14 @@ limit 2
 select tweet_id from tweets
 where length(content)>15
 --Excercise 7
-
+select activity_date as day, count(distinct(user_id)) as active_users from Activity
+where activity_date between '2019-06-27' and '2019-07-28'  
+group by activity_date;
 --Excercise 8
 select count(id) as number_of_hired  from employees
 where (extract(month from joining_date) between 1 and 7) and extract(year from joining_date)=2022
 --Excercise 9
 select position('a'in first_name ) as position_a_Amitah from worker
-where 	first_name = 'Amitah'
+where first_name = 'Amitah'
 --Excercise 10
-select title as name, substring( title from (length(winery)+2) for 4) as year from winemag_p2;
+select title, right(left(title,length(winery)+5),4) as year from winemag_p2
