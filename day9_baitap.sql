@@ -12,7 +12,7 @@ from viewership
 --Excercise 2
 select * ,
 case 
-  when x+y>z then 'Yes'
+  when (x+y>z and y+z>x and x+z>y) then 'Yes'
   else 'No' 
 end as 'Triangle'
 from Triangle
@@ -25,20 +25,20 @@ end)) as decimal)*100/200,1) as categorised_call
 from callers
 --Excercise 4
 select name from customer 
-where (coalesce(referee_id,0)) <> 2 
+where coalesce(referee_id,0) <> 2 
 --Excercise 5
-select survived, 
+select survived,
 sum(case
- when pclass=1 then 1
- else 0
+when pclass=1 then 1
+else 0
 end) as first_class,
 sum(case
- when pclass=2 then 1
- else 0
+when pclass=2 then 1
+else 0
 end) as second_class,
-sum(case
- when pclass=3 then 1
- else 0
-end) as third_class
+sum(case 
+when pclass=3 then 1
+else 0
+end) as third_class 
 from titanic
 group by survived
