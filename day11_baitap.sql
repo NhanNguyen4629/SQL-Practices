@@ -19,3 +19,9 @@ inner join products as p
 on c.product_id=p.product_id
 group by c.customer_id
 having count(distinct( p.product_category))=3
+--Excercise 5
+select emp.reports_to as employee_id , mng.name, count(emp.employee_id) as reports_count, ceiling(avg(emp.age)) as average_age
+from Employees as emp
+left join Employees as mng
+on emp. reports_to=mng.employee_id
+where  coalesce(emp.reports_to,'null') <> 'null'
