@@ -17,9 +17,9 @@ AND t.signup_action = 'Confirmed'
 --Excercise 3
 SELECT age.age_bucket,
 round(cast((sum(case 
-when act.	activity_type='send' then act.time_spent else 0 end)*100.0/sum(time_spent)) as decimal),2) as send_per,
+when act.activity_type='send' then act.time_spent else 0 end)*100.0/sum(time_spent)) as decimal),2) as send_per,
 (100.0 - round(cast((sum(case 
-when act.	activity_type='send' then act.time_spent else 0 end)*100.0/sum(time_spent)) as decimal),2)) as open_per
+when act.activity_type='send' then act.time_spent else 0 end)*100.0/sum(time_spent)) as decimal),2)) as open_per
 from activities as act
 left join age_breakdown as age
 on act.user_id=age.user_id
