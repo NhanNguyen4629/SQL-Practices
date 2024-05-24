@@ -47,22 +47,26 @@ where event_date between '06/01/2022' and '07/01/2022')
 group by cast(extract(month from event_date) as int)
  
 --Excercise 6
- with approved as(select country, concat(year(trans_date),'-',month(trans_date)) as month, count(id) as approved_count,
+ with approved as(select country, SUBSTR(trans_date,1,7) as month, count(id) as approved_count,
 sum(amount) as approved_total_amount from Transactions
-where state='approved'
-group by country, concat(year(trans_date),'-',month(trans_date))),
-total as(select country, concat(year(trans_date),'-',month(trans_date)) as month, count(id) as trans_count,
+where state= 'approved'
+group by country, SUBSTR(trans_date,1,7)),
+total as(select country, SUBSTR(trans_date,1,7) as month, count(id) as trans_count,
 sum(amount) as trans_total_amount from Transactions
-group by country, concat(year(trans_date),'-',month(trans_date)))
-select a.month,
-a.country, a.trans_count,b.approved_count, a.trans_total_amount,b.approved_total_amount 
+group by country, SUBSTR(trans_date,1,7))
+select a.month, a.country, a.trans_count,b.approved_count, a.trans_total_amount,b.approved_total_amount 
 from total as a
 left join approved as b on a.country=b.country
 where a.month=b.month
 
+
 --Excercise 7
-select product_id, year as first_year,quantity,price from sales 
-where  year in (select min(year)from sales group by product_id)
+with first_year as(select product_id, min(year) as year from sales
+group by product_id)
+select a.product_id, a.year as first_year, b.quantity, b.price
+from first_year as a
+join sales as b on a.product_id=b.product_id
+where a.product_id=b.product_id and a.year=b.year
 
 --Excercise 8
 select customer_id from Customer 
