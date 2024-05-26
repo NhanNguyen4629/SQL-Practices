@@ -33,13 +33,28 @@ round(avg(tweet_count) over (partition by user_id order by tweet_date rows betwe
 FROM tweets
 
 --Excercise 6
-with a as(select category,product,sum(spend) as total_spend from product_spend 
+select count(merchant_id) from (select * ,
+lag(transaction_timestamp) over(partition by merchant_id,credit_card_id,amount order by transaction_timestamp) as prev,
+first_value(amount) over (partition by merchant_id,credit_card_id,amount order by transaction_timestamp) as first_amount
+from transactions ) as a
+where (extract(epoch from a.transaction_timestamp)-extract(epoch from a.prev))between 1 and 600
+
+ 
+--Excercise 7
+with a as(select category,product, sum(spend) as total_spend,
+rank() over (partition by category order by sum(spend)desc) as rank1
+from product_spend
 where extract(year from transaction_date)=2022
-group by category,product
-order by category,sum(spend) desc),
- b as (select category,product,total_spend,
-rank() over (partition by category order by total_spend desc) as rank_spend 
-from a)
-select category,product,total_spend from b
-where rank_spend in('1','2')
-order by category
+group by category,product)
+select category,product,total_spend from a
+where rank1 in ('1','2')
+
+--Excercise 8
+select * from(SELECT a.artist_name, 
+dense_rank() over( order by count(c.song_id)desc) artist_rank
+from artists as a
+join songs as b on a.artist_id=b.artist_id
+join global_song_rank as c on b.song_id=c.song_id
+where c.rank between 1 and 10
+group by a.artist_name) as top10
+where top10.artist_rank between 1 and 5
