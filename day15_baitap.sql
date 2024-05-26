@@ -50,11 +50,11 @@ select category,product,total_spend from a
 where rank1 in ('1','2')
 
 --Excercise 8
-select * from(SELECT a.artist_name, 
-dense_rank() over( order by count(c.song_id)desc) artist_rank
+select artist_name,artist_rank from(SELECT a.artist_name, 
+dense_rank() over( order by count(c.song_id)desc) as artist_rank
 from artists as a
 join songs as b on a.artist_id=b.artist_id
 join global_song_rank as c on b.song_id=c.song_id
-where c.rank between 1 and 10
+where c.rank <= 10
 group by a.artist_name) as top10
-where top10.artist_rank between 1 and 5
+where artist_rank <=5
