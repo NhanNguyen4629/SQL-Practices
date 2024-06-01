@@ -3,6 +3,12 @@ extract (year from created_at) as year, extract(month from created_at) as month 
 where status ='Complete' and (created_at between '2019-01-01' and '2022-05-01')
 group by extract (year from created_at), extract(month from created_at)) as a
 order by year, month
+
+ select  * from( select count(distinct(user_id)) as total_user ,count(order_id) as total_order, 
+substring(cast(created_at as string),1,7) as month_year from bigquery-public-data.thelook_ecommerce.orders
+where status ='Complete' and (created_at between '2019-01-01' and '2022-05-01')
+group by substring(cast(created_at as string),1,7))
+order by month_year
 --Nhận xét: lượng KH và order tăng theo thời gian
 
  with cte_value as(select extract(year from a.created_at)as year, extract(month from a.created_at) as month , 
