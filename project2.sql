@@ -60,3 +60,29 @@ where a.status='Complete' and a.created_at between '2022-01-15'and'2022-04-16'
 group by cast(a.created_at as date), c.category)
 order by dates
 
+
+
+
+
+
+
+with cte as (select extract(year from a.created_at) as year,
+extract(month from a.created_at ) as month,
+c.category, a.num_of_item as num,b.sale_price as price,a.order_id,c.cost
+from bigquery-public-data.thelook_ecommerce.orders as a
+join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id
+join bigquery-public-data.thelook_ecommerce.products as c on b.product_id=c.id
+where a.status='Complete'),
+cte1 as(select *,
+sum(num*price) over (partition by year,month) as TPV,
+count(order_id) over (partition by year,month) as TPO,
+sum(cost*num) over (partition by year,month) as total_cost,
+sum(num*price-cost*num) over (partition by year,month) as total_profit,
+from cte
+order by year,month),
+cte2 as(select *,
+total_profit/total_cost as profit_to_cost_ratio 
+ from cte1)
+ select*,((tpv-lag(tpv)over(order by year,month))/(lag(tpv)over(order by year,month)))||' %' as revenue_growth from (select distinct month,year,tpv,
+from cte2 )
+order by year, month
