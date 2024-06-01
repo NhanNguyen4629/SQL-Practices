@@ -33,3 +33,12 @@ from profit_total
 order by year,month)
 select * from top
 where rank1 between 1 and 5
+
+
+select * from(select cast(a.created_at as date) as dates, sum(a.num_of_item*b.sale_price) as revenue , c.category as prodyct_categories
+from bigquery-public-data.thelook_ecommerce.orders as a
+join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id
+join bigquery-public-data.thelook_ecommerce.products as c on b.product_id=c.id
+where a.status='Complete' and (a.created_at between '2022-01-15'and '2022-04-16')
+group by cast(a.created_at as date), c.category) as revenue_category
+order by dates
