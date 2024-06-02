@@ -93,3 +93,5 @@ round(100*m2/m1,2)||'%' as m2,
 round(100*m3/m1,2)||'%' as m3
 from user_cohort
 order by cohort_date
+--Nhận xét: công ty nên tập trung vào chất lượng sản phẩm và dịch vụ thay vì tăng số lượng sản phẩm do lượng khách hàng quay lại sau mỗi tháng rất ít
+
