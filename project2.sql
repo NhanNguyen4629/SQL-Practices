@@ -1,88 +1,95 @@
-select year||'-'||month as month_year, total_user, total_order from( select count(distinct(user_id)) as total_user ,count(order_id) as total_order, 
-extract (year from created_at) as year, extract(month from created_at) as month from bigquery-public-data.thelook_ecommerce.orders
+--II.1.Số lượng đơn hàng và số lượng khách hàng mỗi tháng
+select * from(select format_date('%Y-%m',created_at) as month_year,count(distinct(user_id)) as total_user ,count(order_id) as total_order
+from bigquery-public-data.thelook_ecommerce.orders
 where status ='Complete' and (created_at between '2019-01-01' and '2022-05-01')
-group by extract (year from created_at), extract(month from created_at)) as a
-order by year, month
-
- select  * from( select count(distinct(user_id)) as total_user ,count(order_id) as total_order, 
-substring(cast(created_at as string),1,7) as month_year from bigquery-public-data.thelook_ecommerce.orders
-where status ='Complete' and (created_at between '2019-01-01' and '2022-05-01')
-group by substring(cast(created_at as string),1,7))
+group by format_date('%Y-%m',created_at))
 order by month_year
---Nhận xét: lượng KH và order tăng theo thời gian
-
- with cte_value as(select extract(year from a.created_at)as year, extract(month from a.created_at) as month , 
-a.user_id ,a.num_of_item as num, b.sale_price,a.order_id
-from bigquery-public-data.thelook_ecommerce.orders as a
-join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id
-where (a.created_at between '2019-01-01' and '2022-05-01') and a.status='Complete')
-select year||'-'||month as month_year, 
+--Nhận xét: lượng KH và order tăng theo thời gian, có tháng giảm nhưng không đáng kể
+ 
+--II.2.Giá trị đơn hàng trung bình (AOV) và số lượng khách hàng mỗi tháng
+ select * from (select format_date('%Y-%m', created_at ) as month_year,
 count(distinct(user_id)) as distinct_user,
-round(sum(num*sale_price)/count(order_id),2) as average_order_value
-from cte_value
-group by year,month
-order by year,month
---Nhận xét: từ 1/2019-4/2022lượng khách hàng có xu hướng tăng mạnh, tuy có một số tháng giảm nhưng không đáng kể
-  
-with user_infor as(select a.order_id,a.user_id,b.first_name,b.last_name, b.age,b.gender
-from bigquery-public-data.thelook_ecommerce.orders as a
-join bigquery-public-data.thelook_ecommerce.users as b on a.user_id=b.id
-where (a.created_at between '2019-01-01' and '2022-05-01') and a.status='Complete'),
-min_max_age as(select gender, min(age) as min_age,max(age) as max_age from user_infor 
+round(sum(sale_price)/(count(order_id)),2) as average_order_value
+from bigquery-public-data.thelook_ecommerce.order_items
+where format_date('%Y-%m', created_at ) between '2019-01' and '2022-04'
+group by format_date('%Y-%m', created_at )) 
+order by month_year
+ 
+--II.3.Nhóm khách hàng theo độ tuổi
+with cte as (select a.user_id,b.first_name,b.last_name,b.gender,b.age
+  from bigquery-public-data.thelook_ecommerce.orders as a
+  join bigquery-public-data.thelook_ecommerce.users as b on a.user_id=b.id
+  where a.created_at between '2019-01-01' and '2022-05-01'),
+age as(select min(age) as minage,max(age) as maxage,gender from cte
 group by gender)
-select a.first_name,a.last_name,a.gender,a.age,
-case when a.age=b.min_age then 'youngest'else 'oldest' end as tag
-from user_infor as a
-join min_max_age as b on a.gender=b.gender
-where a.age=b.min_age or a.age=b.max_age
---Nhận xét: Female:youngest_60 KH, oldest_76 KH
-  --        Male: youngest_72 KH, oldest_56 KH 
-
-with sale as(select extract(year from a.created_at) as year, extract(month from a.created_at) as month, 
-a.order_id, b.product_id,c.name, a.num_of_item as num,b.sale_price as sales, c.cost, 
+select a.first_name, a.last_name,a.gender, a.age,
+case when a.age=b.minage then 'youngest' else 'oldest' end as tag
+ from cte as a
+join age as b on a.gender=b.gender
+where a.gender=b.gender and a.age=b.minage or a.age=b.maxage
+--Nhận xét: Female:youngest_222 KH, oldest_194 KH
+  --        Male: youngest_224 KH, oldest_203 KH 
+ 
+-II.4.Top 5 sản phẩm mỗi tháng
+with sale as(select format_date('%Y-%m',a.created_at) as month_year, 
+b.product_id,c.name, round(sum(b.sale_price),2) as sales, round(sum(c.cost),2) as cost, 
 from bigquery-public-data.thelook_ecommerce.orders as a
 join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id
 join bigquery-public-data.thelook_ecommerce.products as c on b.product_id=c.id
-where a.status='Complete'),
-rank_of_month as (select year||'-'||month as month_year,product_id, name, sales, cost, (sales-cost)*num as profit,
-dense_rank() over (partition by year,month order by (sales-cost)*num desc) as rank_per_month
-from sale
-order by year, month)
-select * from rank_of_month
-where rank_per_month between 1 and 5
+where a.status='Complete'
+group by format_date('%Y-%m',a.created_at),b.product_id,c.name)
+select * from (select *, round(sales-cost,2) as profit ,
+dense_rank() over(partition by month_year order by (sales-cost) desc) as topprofit from sale)
+where topprofit between 1 and 5
+order by month_year
 
-
-select * from(select cast(a.created_at as date) as dates,c.category,sum(a.num_of_item*b.sale_price) as revenue
+  
+--II.5.Doanh thu tính đến thời điểm hiện tại trên mỗi danh mục
+select*from(select cast(a.created_at as date)as dates, c.category as product_categories,
+round(sum(b.sale_price),2) as revenue
 from bigquery-public-data.thelook_ecommerce.orders as a
+join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id  
+join bigquery-public-data.thelook_ecommerce.products as c on b.product_id=c.id
+where a.status='Complete' and a.created_at between '2022-01-15'and'2022-04-16' 
+group by cast(a.created_at as date), c.category) order by dates
+
+--III.1. tạo dataset
+with cte1 as(select format_date('%Y-%m',a.created_at) as month, format_date('%Y',a.created_at) as year,
+c.category as product_category,round(sum(b.sale_price),2) as TPV, round(sum(a.order_id),2) as TPO, 
+round(sum(c.cost),2) as total_cost
+from bigquery-public-data.thelook_ecommerce.orders as a 
 join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id
 join bigquery-public-data.thelook_ecommerce.products as c on b.product_id=c.id
-where a.status='Complete' and a.created_at between '2022-01-15'and'2022-04-16'
-group by cast(a.created_at as date), c.category)
-order by dates
+where a.status='Complete'
+group by format_date('%Y-%m',a.created_at) , format_date('%Y',a.created_at),
+c.category)
+select *,
+round(cast((TPV - lag(TPV) over(partition by product_category order by month))/
+lag(TPV) over(partition by product_category order by month) as Decimal)*100.00,2) || '%'
+as revenue_growth,
+round(cast((TPO - lag(TPO) over(partition by product_category order by month))/
+lag(TPO) over(partition by product_category order by month) as Decimal)*100.00,2) || '%'
+as order_growth,
+ round(TPV-total_cost,2) as total_profit,
+ round((TPV-total_cost)/total_cost,2) as profit_to_cost_ratio from cte1
+order by month
 
-
-
-
-
-
-
-with cte as (select extract(year from a.created_at) as year,
-extract(month from a.created_at ) as month,
-c.category, a.num_of_item as num,b.sale_price as price,a.order_id,c.cost
-from bigquery-public-data.thelook_ecommerce.orders as a
-join bigquery-public-data.thelook_ecommerce.order_items as b on a.order_id=b.order_id
-join bigquery-public-data.thelook_ecommerce.products as c on b.product_id=c.id
-where a.status='Complete'),
-cte1 as(select *,
-sum(num*price) over (partition by year,month) as TPV,
-count(order_id) over (partition by year,month) as TPO,
-sum(cost*num) over (partition by year,month) as total_cost,
-sum(num*price-cost*num) over (partition by year,month) as total_profit,
-from cte
-order by year,month),
-cte2 as(select *,
-total_profit/total_cost as profit_to_cost_ratio 
- from cte1)
- select*,((tpv-lag(tpv)over(order by year,month))/(lag(tpv)over(order by year,month)))||' %' as revenue_growth from (select distinct month,year,tpv,
-from cte2 )
-order by year, month
+--III.2.Retention cohort
+with user_order as(select order_id,user_id, created_at
+from bigquery-public-data.thelook_ecommerce.orders),
+cohort_index as(select user_id,order_id,format_date('%Y-%m',created_at)as cohort_date, 
+((extract(year from created_at)-extract(year from first_day))*12+(extract(month from created_at)-extract(month from first_day)+1)) as index from (select *,min(created_at) over (partition by user_id) as first_day from user_order)),
+cohort as(select cohort_date, index, count(distinct(user_id))as user,count(order_id) as orders from cohort_index
+where index between 1 and 3
+group by cohort_date, index),
+user_cohort as(select cohort_date,
+sum(case when index=1 then user else 0 end) as m1,
+sum(case when index=2 then user else 0 end) as m2,
+sum(case when index=3 then user else 0 end) as m3 from cohort
+group by cohort_date)
+select cohort_date ,
+round(100*m1/m1,2)||'%' as m1,
+round(100*m2/m1,2)||'%' as m2,
+round(100*m3/m1,2)||'%' as m3
+from user_cohort
+order by cohort_date
