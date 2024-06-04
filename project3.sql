@@ -10,7 +10,7 @@ select year_id,month_id, sum(quantityordered*priceeach) as revenue,
 count(ordernumber) as order_number from public.sales_dataset_rfm_prj
 group by year_id,month_id
 order by year_id,sum(quantityordered*priceeach) desc
-  --Trả lời: năm 2003 và 2004: tháng 11
+  --Trả lời: năm 2003 và 2004: tháng 11; 2005: tháng 5
   
 --3.Product line nào được bán nhiều ở tháng 11?
 select month_id,productline,
